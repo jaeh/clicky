@@ -15,9 +15,11 @@
     :mud 1
     :bricks 0
     :people 0
+    :food 0
   }
   :buildings {
     :shacks 0
+    :farms 0
     :mansions 0
     :brickyards 0
   }
@@ -30,8 +32,7 @@
 (defn tick [data]
   (-> data
     (update-in [:resources :mud] + (* (-> data :resources :people) 0.00001))
-
-
+    (update-in [:resources :food] + (* (-> data :buildings :farms) 0.00001))
     (update-in [:resources :people] + (* (-> data :buildings :mansions) 0.0001)
                                       (* (-> data :buildings :shacks) 0.000001))
   )
@@ -46,6 +47,7 @@
   :mud->brick (fn [_] 10)
   :bricks->shack (fn [data] (* 100 ( + 1 (-> data :buildings :shacks)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->mansion (fn [data] (* 1000 (+ 1 (-> data :buildings :mansions)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
+  :bricks->farm (fn [data] (* 1000 (+ 1 (-> data :buildings :farms)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->brickyard (fn [data] (* 500 (+ 1 (-> data :buildings :brickyards))))
 })
 
@@ -102,11 +104,13 @@
         [:ul.resources
           [:li "Mud: " (-> data :resources :mud)]
           [:li "Bricks: " (-> data :resources :bricks)]
+          [:li "Food: " (-> data :resources :food)]
           [:li "People: " (-> data :resources :people)]
         ]
         [:ul.buildings
           [:li "Shacks: " (-> data :buildings :shacks)]
           [:li "Mansions: " (-> data :buildings :mansions)]
+          [:li "Farms: " (-> data :buildings :farms)]
           [:li "Brickyards: " (-> data :buildings :brickyards)]
         ]
         [:div.controls
@@ -125,6 +129,10 @@
           (purchase-button data [:resources :bricks] :bricks->mansion [:buildings :mansions] 1 "Build Mansion" :1m)
           (purchase-button data [:resources :bricks] :bricks->mansion [:buildings :mansions] 10 "10" :10m)
           (purchase-button data [:resources :bricks] :bricks->mansion [:buildings :mansions] 100 "100" :100m)
+          [:br]
+          (purchase-button data [:resources :bricks] :bricks->farm [:buildings :farms] 1 "Build Farm" :1s)
+          (purchase-button data [:resources :bricks] :bricks->farm [:buildings :farms] 10 "10" :10s)
+          (purchase-button data [:resources :bricks] :bricks->farm [:buildings :farms] 100 "100" :100s)
           [:br]
           (purchase-button data [:resources :bricks] :bricks->brickyard [:buildings :brickyards] 1 "Build Brickyard" :1by)
           (purchase-button data [:resources :bricks] :bricks->brickyard [:buildings :brickyards] 10 "10" :10by)
