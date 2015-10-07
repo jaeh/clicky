@@ -14,7 +14,6 @@
   :resources {
     :mud 1
     :bricks 0
-    :people 0
     :food 0
   }
   :buildings {
@@ -22,6 +21,9 @@
     :farms 0
     :mansions 0
     :brickyards 0
+  }
+  :people {
+    :workers 0
   }
   :flags #{}
 }))
@@ -31,9 +33,9 @@
 
 (defn tick [data]
   (-> data
-    (update-in [:resources :mud] + (* (-> data :resources :people) 0.00001))
+    (update-in [:resources :mud] + (* (-> data :people :workers) 0.00001))
     (update-in [:resources :food] + (* (-> data :buildings :farms) 0.00001))
-    (update-in [:resources :people] + (* (-> data :buildings :mansions) 0.0001)
+    (update-in [:people :workers] + (* (-> data :buildings :mansions) 0.0001)
                                       (* (-> data :buildings :shacks) 0.000001))
   )
 )
@@ -45,10 +47,11 @@
 
 (def cost {
   :mud->brick (fn [_] 10)
-  :bricks->shack (fn [data] (* 100 ( + 1 (-> data :buildings :shacks)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
+  :bricks->shack (fn [data] (* 100 (+ 1 (-> data :buildings :shacks)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->mansion (fn [data] (* 1000 (+ 1 (-> data :buildings :mansions)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->farm (fn [data] (* 1000 (+ 1 (-> data :buildings :farms)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->brickyard (fn [data] (* 500 (+ 1 (-> data :buildings :brickyards))))
+  :people->worker (fn [data] (* (+ 1 (-> data :people :workers))))
 })
 
 (defn check-cost [selector cost-key n]
@@ -105,7 +108,7 @@
           [:li "Mud: " (-> data :resources :mud)]
           [:li "Bricks: " (-> data :resources :bricks)]
           [:li "Food: " (-> data :resources :food)]
-          [:li "People: " (-> data :resources :people)]
+          [:li "People: " (-> data :people :workers)]
         ]
         [:ul.buildings
           [:li "Shacks: " (-> data :buildings :shacks)]
@@ -113,6 +116,8 @@
           [:li "Farms: " (-> data :buildings :farms)]
           [:li "Brickyards: " (-> data :buildings :brickyards)]
         ]
+        [:ul.people]
+          [:li "Workers: " (-> data :people :workers)]
         [:div.controls
           (action-button data (fn [data] true) pick-mud! "Dig Mud" :mud)
           [:br]
@@ -138,6 +143,9 @@
           (purchase-button data [:resources :bricks] :bricks->brickyard [:buildings :brickyards] 10 "10" :10by)
           (purchase-button data [:resources :bricks] :bricks->brickyard [:buildings :brickyards] 100 "100" :100by)
           [:br]
+          (purchase-button data [:resources :food] :people->worker [:people :workers] 1 "Hire Worker" :1w)
+          (purchase-button data [:resources :food] :people->worker [:people :workers] 10 "10" :10w)
+          (purchase-button data [:resources :food] :people->worker [:people :workers] 100 "100" :100w)
           [:br]
           [:br]
           [:br]
