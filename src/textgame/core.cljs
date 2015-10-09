@@ -15,15 +15,20 @@
     :mud 1
     :bricks 0
     :food 0
+    :faith 0
+    :science 0
   }
   :buildings {
     :shacks 0
     :farms 0
     :mansions 0
     :brickyards 0
+    :temples 0
   }
   :people {
     :workers 0
+    :priests 0
+    :engineers 0
   }
   :flags #{}
 }))
@@ -36,7 +41,9 @@
     (update-in [:resources :mud] + (* (-> data :people :workers) 0.00001))
     (update-in [:resources :food] + (* (-> data :buildings :farms) 0.00001))
     (update-in [:people :workers] + (* (-> data :buildings :mansions) 0.0001)
-                                      (* (-> data :buildings :shacks) 0.000001))
+                                    (* (-> data :buildings :shacks) 0.000001))
+    (update-in [:resources :faith] + (* (-> data :people :priests) (* (-> data :buildings :temples) 0.0001) 0.0001))
+    (update-in [:resources :science] + (* (-> data :people :engineers) (* (-> data :buildings :brickyards) 0.0001) 0.0001))
   )
 )
 
@@ -50,8 +57,10 @@
   :bricks->shack (fn [data] (* 100 (+ 1 (-> data :buildings :shacks)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->mansion (fn [data] (* 1000 (+ 1 (-> data :buildings :mansions)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->farm (fn [data] (* 1000 (+ 1 (-> data :buildings :farms)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
+  :bricks->temple (fn [data] (* 1000 (+ 1 (-> data :buildings :temples)) (js/Math.pow 0.95 (-> data :buildings :brickyards))))
   :bricks->brickyard (fn [data] (* 500 (+ 1 (-> data :buildings :brickyards))))
-  :people->worker (fn [data] (* (+ 1 (-> data :people :workers))))
+  :people->worker (fn [data] (* (+ 1 (-> data :people :workers)) 100))
+  :people->priest (fn [data] (* (+ 1 (-> data :people :priests)) 100))
 })
 
 (defn check-cost [selector cost-key n]
@@ -97,6 +106,11 @@
   )
 )
 
+(defn resource-container [resource-name resource]
+  (if (> (-> resource) 0)
+    [:li (-> resource-name) (-> resource)]
+  )
+)
 
 ; UI
 
@@ -105,19 +119,22 @@
     (html
       [:div.container
         [:ul.resources
-          [:li "Mud: " (-> data :resources :mud)]
-          [:li "Bricks: " (-> data :resources :bricks)]
-          [:li "Food: " (-> data :resources :food)]
-          [:li "People: " (-> data :people :workers)]
+          (resource-container "Mud: " (-> data :resources :mud))
+          (resource-container "Bricks: " (-> data :resources :bricks))
+          (resource-container "Food: " (-> data :resources :food))
+          (resource-container "Faith: " (-> data :resources :faith))          
         ]
         [:ul.buildings
           [:li "Shacks: " (-> data :buildings :shacks)]
           [:li "Mansions: " (-> data :buildings :mansions)]
           [:li "Farms: " (-> data :buildings :farms)]
+          [:li "Temples: " (-> data :buildings :temples)]
           [:li "Brickyards: " (-> data :buildings :brickyards)]
         ]
-        [:ul.people]
+        [:ul.people
           [:li "Workers: " (-> data :people :workers)]
+          [:li "Priests: " (-> data :people :priests)]
+        ]
         [:div.controls
           (action-button data (fn [data] true) pick-mud! "Dig Mud" :mud)
           [:br]
@@ -135,6 +152,10 @@
           (purchase-button data [:resources :bricks] :bricks->mansion [:buildings :mansions] 10 "10" :10m)
           (purchase-button data [:resources :bricks] :bricks->mansion [:buildings :mansions] 100 "100" :100m)
           [:br]
+          (purchase-button data [:resources :bricks] :bricks->temple [:buildings :temples] 1 "Build Temple" :1s)
+          (purchase-button data [:resources :bricks] :bricks->temple [:buildings :temples] 10 "10" :10s)
+          (purchase-button data [:resources :bricks] :bricks->temple [:buildings :temples] 100 "100" :100s)
+          [:br]
           (purchase-button data [:resources :bricks] :bricks->farm [:buildings :farms] 1 "Build Farm" :1s)
           (purchase-button data [:resources :bricks] :bricks->farm [:buildings :farms] 10 "10" :10s)
           (purchase-button data [:resources :bricks] :bricks->farm [:buildings :farms] 100 "100" :100s)
@@ -147,10 +168,9 @@
           (purchase-button data [:resources :food] :people->worker [:people :workers] 10 "10" :10w)
           (purchase-button data [:resources :food] :people->worker [:people :workers] 100 "100" :100w)
           [:br]
-          [:br]
-          [:br]
-          [:br]
-          [:br]
+          (purchase-button data [:people :workers] :people->priest [:people :priests] 1 "Hire Priest" :1w)
+          (purchase-button data [:people :workers] :people->priest [:people :priests] 10 "10" :10w)
+          (purchase-button data [:people :workers] :people->priest [:people :priests] 100 "100" :100w)
           [:br]
           [:br]
           (action-button data (fn [data] true) (fn [data] (update-in data [:resources :mud] + 10000000000)) "Cheat!" :cheat)
